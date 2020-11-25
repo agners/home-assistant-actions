@@ -7,7 +7,6 @@ inputs:
     description: "JSON key to replace version with, e.g. supervisor, homeassistant.default or hassos[] to replace for all properties in hassos."
   key-description:
     required: false
-    default: {{ inputs.key }}
     description: "Human Friendly description of key which is beeing changed for git commit message."
   version:
     required: true
@@ -18,6 +17,7 @@ runs:
   using: "composite"
   steps: 
     - shell: bash
+      id: validate-input
       run: |
         if [[ -z "${{ inputs.key }}" ]];then
           echo "::error::Missing required key 'key' input!"
@@ -25,6 +25,12 @@ runs:
         elif [[ -z "${{ inputs.version }}" ]];then
           echo "::error::Missing required key 'version' input!"
           exit 1
+        fi
+        echo "${{ inputs.key-description }}"
+        if [[ -z "${{ inputs.key-description }}" ]];then
+          echo "::set-output name=key-description::${{ inputs.key }}"
+        else
+          echo "::set-output name=key-description::${{ inputs.key-description }}"
         fi
 
     - shell: bash
@@ -39,6 +45,6 @@ runs:
     - shell: bash
       run: |
         cd /tmp/version
-        git commit -am "Bump ${{ inputs.key-description }} to ${{ inputs.version }}"
+        git commit -am "Bump ${{ steps.validate-input.outputs.key-description }} to ${{ inputs.version }}"
         git push
         rm -r /tmp/version
