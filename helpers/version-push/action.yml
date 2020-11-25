@@ -37,3 +37,4 @@ runs:
         cd /tmp/version
         git commit -am "Bump ${{ inputs.key }} to ${{ inputs.version }}"
         git push
+        rm -r /tmp/version
