@@ -24,7 +24,7 @@ runs:
         fi
 
     - shell: bash
-      run: git clone --depth 1 https://github.com/home-assistant/version.git /tmp/version
+      run: git clone --depth 1 https://github.com/agners/version.git /tmp/version
 
     - shell: bash
       run: |
