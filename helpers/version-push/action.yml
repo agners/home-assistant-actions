@@ -5,6 +5,10 @@ inputs:
     required: true
     default: ''
     description: "JSON key to replace version with, e.g. supervisor, homeassistant.default or hassos[] to replace for all properties in hassos."
+  key-description:
+    required: false
+    default: {{ inputs.key }}
+    description: "Human Friendly description of key which is beeing changed for git commit message."
   version:
     required: true
     default: ''
@@ -35,6 +39,6 @@ runs:
     - shell: bash
       run: |
         cd /tmp/version
-        git commit -am "Bump ${{ inputs.key }} to ${{ inputs.version }}"
+        git commit -am "Bump ${{ inputs.key-description }} to ${{ inputs.version }}"
         git push
         rm -r /tmp/version
