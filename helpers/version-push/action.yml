@@ -13,6 +13,10 @@ inputs:
     default: ''
   channel:
     default: 'dev'
+  rollout:
+    required: false
+    default: 'false'
+    description: "Generate rollout description file for staged rollout"
 runs:
   using: "composite"
   steps: 
@@ -49,6 +53,35 @@ runs:
         temp=$(mktemp)
         jq ".$INPUTS_KEY |= \"$INPUTS_VERSION\"" "/tmp/version/version.json" > "${temp}"
         mv "${temp}" "/tmp/version/version.json"
+
+    - name: Generate rollout plan JSON
+      shell: python
+      run: |
+          import json
+          from datetime import datetime, timedelta
+
+          # Define the timespan/percentage tuples: (timespan in hours, target cumulative percentage)
+          rollout_stages = [
+              (1, 5),       # After 1 hour, reach 5% of users
+              (48, 25),     # After 48 hours, reach 25% of users
+              (12, 50),     # After 12 more hours, reach 50% of users
+              (36, 100)     # After 36 more hours, reach 100% of users
+          ]
+
+          # Start from the current UTC time
+          current_time = datetime.utcnow()
+          rollout_plan = {}
+
+          # Generate each stage in the rollout plan
+          for timespan, target_percentage in rollout_stages:
+              current_time += timedelta(hours=timespan)
+              rollout_plan[current_time.isoformat() + 'Z'] = target_percentage
+
+          # Write to JSON file
+          with open('/tmp/version/rollout.json', 'w') as f:
+              json.dump(rollout_plan, f, indent=2)
+
+          print('Rollout plan generated:', rollout_plan)
 
     - shell: bash
       env:
