@@ -43,7 +43,7 @@ runs:
     - shell: bash
       env:
         INPUTS_CHANNEL: ${{ inputs.channel }}
-      run: git clone --depth 1 --single-branch --branch "$INPUTS_CHANNEL" https://github.com/home-assistant/version.git /tmp/version
+      run: git clone --depth 1 --single-branch --branch "$INPUTS_CHANNEL" https://github.com/agners/home-assistant-version.git /tmp/version
 
     - shell: bash
       env:
