@@ -37,17 +37,18 @@ runs:
         fi
 
     - shell: bash
-      run: git clone --depth 1 https://github.com/home-assistant/version.git /tmp/version
+      env:
+        INPUTS_CHANNEL: ${{ inputs.channel }}
+      run: git clone --depth 1 --single-branch --branch "$INPUTS_CHANNEL" https://github.com/home-assistant/version.git /tmp/version
 
     - shell: bash
       env:
         INPUTS_KEY: ${{ inputs.key }}
         INPUTS_VERSION: ${{ inputs.version }}
-        INPUTS_CHANNEL: ${{ inputs.channel }}
       run: |
         temp=$(mktemp)
-        jq ".$INPUTS_KEY |= \"$INPUTS_VERSION\"" "/tmp/version/$INPUTS_CHANNEL.json" > "${temp}"
-        mv "${temp}" "/tmp/version/$INPUTS_CHANNEL.json"
+        jq ".$INPUTS_KEY |= \"$INPUTS_VERSION\"" "/tmp/version/version.json" > "${temp}"
+        mv "${temp}" "/tmp/version/version.json"
 
     - shell: bash
       env:
