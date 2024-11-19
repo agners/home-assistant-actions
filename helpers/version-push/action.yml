@@ -55,6 +55,7 @@ runs:
         mv "${temp}" "/tmp/version/version.json"
 
     - name: Generate rollout plan JSON
+      if: ${{ inputs.rollout == 'true' }}
       shell: python
       run: |
           import json
@@ -63,9 +64,8 @@ runs:
           # Define the timespan/percentage tuples: (timespan in hours, target cumulative percentage)
           rollout_stages = [
               (1, 5),       # After 1 hour, reach 5% of users
-              (48, 25),     # After 48 hours, reach 25% of users
-              (12, 50),     # After 12 more hours, reach 50% of users
-              (36, 100)     # After 36 more hours, reach 100% of users
+              (48, 5),      # For 48 hours, stay at 5% of users
+              (12, 100),     # After 12 more hours, reach 100% of users
           ]
 
           # Start from the current UTC time
