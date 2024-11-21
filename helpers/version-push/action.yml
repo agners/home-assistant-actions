@@ -7,7 +7,7 @@ inputs:
     description: "JSON key to replace version with, e.g. supervisor, homeassistant.default or hassos[] to replace for all properties in hassos."
   key-description:
     required: false
-    description: "Human Friendly description of key which is beeing changed for git commit message."
+    description: "Human Friendly description of key which is being changed for git commit message."
   version:
     required: true
     default: ''
@@ -17,9 +17,13 @@ inputs:
     required: false
     default: 'false'
     description: "Generate rollout description file for staged rollout"
+  create-pr:
+    required: false
+    default: 'false'
+    description: "Whether to create a new branch and open a pull request"
 runs:
   using: "composite"
-  steps: 
+  steps:
     - shell: bash
       id: validate-input
       env:
@@ -46,15 +50,27 @@ runs:
       run: git clone --depth 1 --single-branch --branch "$INPUTS_CHANNEL" https://github.com/agners/home-assistant-version.git /tmp/version
 
     - shell: bash
+      working-directory: /tmp/version
+      if: ${{ inputs.create-pr == 'true' }}
+      env:
+        INPUTS_KEY: ${{ inputs.key }}
+        INPUTS_VERSION: ${{ inputs.version }}
+      run: |
+        branch_name="update/${{ inputs.key }}-${{ inputs.version }}"
+        git checkout -b "$branch_name"
+
+    - shell: bash
+      working-directory: /tmp/version
       env:
         INPUTS_KEY: ${{ inputs.key }}
         INPUTS_VERSION: ${{ inputs.version }}
       run: |
         temp=$(mktemp)
-        jq ".$INPUTS_KEY |= \"$INPUTS_VERSION\"" "/tmp/version/version.json" > "${temp}"
-        mv "${temp}" "/tmp/version/version.json"
+        jq ".$INPUTS_KEY |= \"$INPUTS_VERSION\"" "version.json" > "${temp}"
+        mv "${temp}" "version.json"
 
     - name: Generate rollout plan JSON
+      working-directory: /tmp/version
       if: ${{ inputs.rollout == 'true' }}
       shell: python
       run: |
@@ -78,18 +94,31 @@ runs:
               rollout_plan[current_time.isoformat() + 'Z'] = target_percentage
 
           # Write to JSON file
-          with open('/tmp/version/rollout.json', 'w') as f:
+          with open('rollout.json', 'w') as f:
               json.dump(rollout_plan, f, indent=2)
 
           print('Rollout plan generated:', rollout_plan)
 
     - shell: bash
+      working-directory: /tmp/version
       env:
         INPUTS_VERSION: ${{ inputs.version }}
       run: |
-        cd /tmp/version
-        git commit -am "Bump ${{ steps.validate-input.outputs.key-description }} to $INPUTS_VERSION"
+        git add version.json rollout.json
+        git commit -m "Bump ${{ steps.validate-input.outputs.key-description }} to $INPUTS_VERSION"
         git push
+
+    - name: Create Pull Request
+      if: ${{ inputs.create-pr == 'true' }}
+      uses: peter-evans/create-pull-request@v7.0.5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ inputs.channel }}
+        head: "$(git rev-parse --abbrev-ref HEAD)"
+        title: "Bump ${{ inputs.key-description }} to ${{ inputs.version }}"
+        body: |
+          This pull request updates ${{ inputs.key-description }} to version ${{ inputs.version }}.
 
     - shell: bash
       run: rm -rf /tmp/version
+
